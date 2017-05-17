@@ -118,11 +118,11 @@
         let info: &multiboot::Information = unsafe { &(*info) };
         memory::init(info);
         interrupts::init();
-        spawn(jippie);
+        spawn(task);
         loop {}
     }
     fn spawn(f: proc():Send) {…}
-    fn jippie() {…}
+    fn task() {…}
     ```
 
     ???

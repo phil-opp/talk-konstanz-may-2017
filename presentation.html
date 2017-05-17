@@ -96,6 +96,63 @@
 
     <br>.grey[Philipp Oppermann]<br><br>.grey[May 22, 2017]
 
+    ---
+
+    # About Me
+
+    - CS student at KIT in Karlsruhe
+    - specializing in Operating Systems
+    - learned Rust in mid 2014…
+
+    ???
+
+    - 1.0 came out in May 2015
+    - started without libstd
+
+    --
+      - …to write a toy OS in it
+
+    ```rust
+    #[no_mangle]
+    pub fn main(info: *const multiboot::Information) {
+        let info: &multiboot::Information = unsafe { &(*info) };
+        memory::init(info);
+        interrupts::init();
+        spawn(jippie);
+        loop {}
+    }
+    fn spawn(f: proc():Send) {…}
+    fn jippie() {…}
+    ```
+
+    ???
+    - `proc()` is a `move` closure today
+    - closures were boxed
+    - apart from that, relatively few changes
+
+    ---
+    count: false
+
+    # About Me
+
+    - CS student at KIT in Karlsruhe
+    - specializing in Operating Systems
+    - learned Rust in mid 2014…
+      - …to write a toy OS in it
+
+
+    - since summer 2015: **Writing an OS in Rust**
+
+    --
+
+
+    - since Oct 2015: student research assistant
+      - **embedded Rust development**
+      - first-ever job listing on _This Week in Rust_:
+      <div style="border: 1px solid grey; padding: 3px;">
+        <img src="twir-job.png">
+      </div>
+
     </textarea>
     <script src="remark-latest.min.js">
     </script>

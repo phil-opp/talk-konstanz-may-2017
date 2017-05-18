@@ -94,100 +94,241 @@
   </head>
   <body>
     <textarea id="source">
-    class: center, middle
-    name: title
-    count: false
+class: center, middle
+name: title
+count: false
 
-    # Writing an OS in Rust
+# Writing an OS in Rust
 
-    <br>.grey[Philipp Oppermann]<br><br>.grey[May 22, 2017]
+<br>.grey[Philipp Oppermann]<br><br>.grey[May 22, 2017]
 
-    ---
+---
 
-    # About Me
+# About Me
 
-    - CS student at KIT in Karlsruhe
-    - specializing in Operating Systems
-    - learned Rust in mid 2014…
+- CS student at KIT in Karlsruhe
+- specializing in Operating Systems
+- learned Rust in mid 2014…
 
-    ???
+???
 
-    - 1.0 came out in May 2015
-    - started without libstd
+- 1.0 came out in May 2015
+- started without libstd
 
-    --
-      - …to write a toy OS in it
+--
+  - …to write a toy OS in it
 
-    ```rust
-    #[no_mangle]
-    pub fn main(info: *const multiboot::Information) {
-        let info: &multiboot::Information = unsafe { &(*info) };
-        memory::init(info);
-        interrupts::init();
-        spawn(task);
-        loop {}
-    }
-    fn spawn(f: proc():Send) {…}
-    fn task() {…}
-    ```
+```rust
+#[no_mangle]
+pub fn main(info: *const multiboot::Information) {
+    let info: &multiboot::Information = unsafe { &(*info) };
+    memory::init(info);
+    interrupts::init();
+    spawn(task);
+    loop {}
+}
+fn spawn(f: proc():Send) {…}
+fn task() {…}
+```
 
-    ???
-    - `proc()` is a `move` closure today
-    - closures were boxed
-    - apart from that, relatively few changes
+???
+- `proc()` is a `move` closure today
+- closures were boxed
+- apart from that, relatively few changes
 
-    ---
-    count: false
+---
+count: false
 
-    # About Me
+# About Me
 
-    - CS student at KIT in Karlsruhe
-    - specializing in Operating Systems
-    - learned Rust in mid 2014…
-      - …to write a toy OS in it
-
-
-    - since summer 2015: **Writing an OS in Rust**
-
-    --
+- CS student at KIT in Karlsruhe
+- specializing in Operating Systems
+- learned Rust in mid 2014…
+  - …to write a toy OS in it
 
 
-    - since Oct 2015: student research assistant
-      - **embedded Rust development**
-      - first job listed on _This Week in Rust_:
-      <div style="border: 1px solid grey; padding: 3px;">
-        <img src="twir-job.png">
-      </div>
+- since summer 2015: **Writing an OS in Rust**
 
-    ---
+--
 
-    # Outline
 
-    - OS development in Rust
-    - About _Writing an OS in Rust_
-      - Motivation
-      - History
-        - IntermezzOS
-      - Current State
-      - Open Source Development on GitHub (PRs, CI)
-      - Future Plans
-    - Multitasking
-      - dispatcher (address space switch)
-      - timer interrupt
-      - scheduler
-        - real time guarantees?
-        - case study: lock-free scheduler from OSv
-      - use futures?
-      - radical idea: no blocking?
-      - case study: RTFM for embedded scheduling
+- since Oct 2015: student research assistant
+  - **embedded Rust development**
+  - first job listed on _This Week in Rust_:
+  <div style="border: 1px solid grey; padding: 3px;">
+    <img src="twir-job.png">
+  </div>
 
-    ---
+---
 
-    # Writing an OS in Rust
+# Outline
 
-    - started in summer 2015
-    - Motivation
+- About _Writing an OS in Rust_
+- Open Source Development on GitHub (PRs, CI)
+- OS development in Rust
+- Multitasking
+  - dispatcher (address space switch)
+  - timer interrupt
+  - scheduler
+    - real time guarantees?
+    - case study: lock-free scheduler from OSv
+  - use futures?
+  - radical idea: no blocking?
+  - case study: RTFM for embedded scheduling
 
+---
+class: center, middle
+
+# About _Writing an OS in Rust_
+---
+# Writing an OS in Rust: Motivation
+
+- Information scattered across the internet
+  - OSDev wiki, x86 manuals, multiboot specification, Rust docs
+- Some things not documented at all .grey[(or hard to find)]
+  - Rust lang items, target specifications, multiboot 2 with ELF64, correct linker flags, ELF section alignment, etc.
+- Most tutorials used old technology
+  - Only 32-bit, multiboot 1, no page tables
+
+
+--
+## Goals
+
+- Step-by-step guide
+- Provide detailed explanations
+
+---
+# Writing an OS in Rust: The Beginnings
+
+- Published in Oct 2015
+  - Four posts: A minimal Kernel, Entering Long Mode, Set Up Rust, and Printing to Screen
+
+.center[![rustlang tweet](rustlang-tweet.png)]
+
+---
+# Writing an OS in Rust: The Beginnings
+
+Received very positive feedback on [/r/rust](https://www.reddit.com/r/rust/comments/3q5a7l/get_started_on_writing_an_os_in_rust/):
+
+- “This is a **pretty great introduction** to OS dev! It's a **lot more readable** than many other tutorials I've read.”
+- “Thanks so much for your post. When I was toying with my own kernel a while ago, I would get stuck on things like `--gc-sections` for days. I'm really glad to see there's now **a resource on all the hoops you have to go through to boot to Rust**.“
+
+---
+# Writing an OS in Rust: The Beginnings
+
+Then some people shared it on [/r/programming](https://www.reddit.com/r/programming/comments/3q6y2l/writing_an_os_in_rust/) and [hacker news](https://news.ycombinator.com/item?id=10448136):
+
+![visitors](visitors.png)
+
+- Suddenly my blog had over 15,000 visitors
+  - I was completely blown away :)
+
+---
+# Writing an OS in Rust: Today
+
+- 792 stars on GitHub
+- Over 1000 commits
+- Over 280 comments on the blog
+  - and many more on reddit/hacker news
+- Lots of issues and pull requests
+
+
+--
+
+- Even used in lectures :)
+  - HTWG Konstanz
+  - KTH Stockholm
+
+
+--
+
+- Influenced other Rust OS projects
+  - IntermezzOS
+  - Redox OS .grey[(a small bit)]
+
+---
+class: middle, center
+
+![rhizome](rhizome.jpg)
+# .title[intermezz]<strong>OS</strong>
+## .grey[a teaching operating system]
+
+---
+# IntermezzOS
+
+- Teaching OS by Steve Klabnik
+  - .grey[Member of the Rust core team]
+- Inspired by _Writing an OS in Rust_
+
+
+- Goal: make OS development easy for newcomers
+  - “I can operating system and so can you”
+- Talk by Ashley Williams at [Rust Fest](https://www.youtube.com/watch?v=WxbrhruIAa8) & [Rust Belt Rust](https://www.youtube.com/watch?v=s3B-0ndna5c&list=PLgC1L0fKd7UmdG82JOEE0uzXci1XY61xU&index=12)
+
+---
+class: middle, center
+![redox-logo](redox-logo.png)
+---
+# Redox
+
+- By Jeremy Soller (@jackpot51)
+  - [Interview about Redox](https://www.youtube.com/watch?v=eH5JgMlNE8o)
+- Microkernel design
+  - Drivers run in userspace
+  - Kernel is only ~8500 LoC .grey[(+ dependencies)]
+- Full-featured Operating System
+  - GUI
+  - file system
+  - rudimentary webbrowser
+- Page table handling inspired by _Writing an OS in Rust_
+
+---
+# Redox
+
+.center[![redox screenshot](redox-screenshot.png)]
+
+---
+# Writing an OS in Rust: Future Plans
+
+- Move more code into the `x86_64` crate
+  - e.g. GDT or page table types
+- Write post about hardware interrupts
+  - PIC/APIC interrupt controllers
+  - timer interrupts
+- Reorder posts: Exceptions before Paging
+  - `x86-interrupt` ABI made exception handling easier
+- Multitasking
+- Improve tooling
+  - own boot loader?
+  - own ISO creation tool?
+
+---
+# Writing an OS in Rust: Bottom Line
+
+- Surprisingly large interest in the topic
+- Lots of positive feedback from the beginning on
+- I learned a lot about
+  - operating systems, x86, Rust, assembly, …
+  - writing in English
+  - maintaining open source projects
+
+
+⇒ After almost 2 years still an exciting project for me
+
+---
+class: middle
+# You can do it too!
+
+If you have a cool idea for a project: **Write about it**!
+
+- The feedback is more positive than you think
+- Especially in the Rust community
+
+---
+class: center, middle
+
+# Open Source Development on GitHub
+.grey[Adding support for the `x86-interrupt` ABI]
 
     </textarea>
     <script src="remark-latest.min.js">

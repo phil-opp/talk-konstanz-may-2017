@@ -337,6 +337,374 @@ class: center, middle
 # Open Source Development on GitHub
 .grey[Adding support for the `x86-interrupt` ABI]
 
+---
+# Open Source Development on GitHub
+
+- Everything is public
+  - issues, discussions, work-in-progress features, …
+- Everybody can propose changes
+  - _Fork_ the repository .grey[(i.e. copy it to your own account)]
+  - Perform the changes in your repo .grey[(in a separate branch)]
+  - Send a _pull request_ .grey[(PR)]
+
+
+--
+
+- Larger changes often require prior discussion
+  - Rust requires RFCs .grey[(request for comments)]
+
+---
+class: small-slide
+
+# RFC Example: Support for 128bit Integers
+
+- Feature Name: int128
+- Start Date: 21-02-2016
+- RFC PR: https://github.com/rust-lang/rfcs/pull/1504
+- Rust Issue: https://github.com/rust-lang/rust/issues/35118
+
+**Summary**
+
+This RFC adds the `i128` and `u128` primitive types to Rust.
+
+**Motivation**
+
+Some algorithms need to work with very large numbers that don't fit in 64 bits, such as certain cryptographic algorithms. One possibility would be to use a BigNum library, but these use heap allocation and tend to have high overhead. LLVM has support for very efficient 128-bit integers, which are exposed by Clang in C as the `__int128` type.
+
+**Detailed design** […]
+
+---
+# Example Contribution: x86-interrupt ABI
+The Problem:
+
+```nasm
+#[naked]
+unsafe extern fn exception_handler_wrapper() {
+    asm!("push rax
+          […] // push other registers
+          push r11
+          sub rsp, 8 // align the stack pointer
+          call exception_handler
+          add rsp, 8 // undo stack pointer alignment
+          pop r11
+          […] // pop other registers
+          pop rax
+          iretq
+          " :::: "volatile", "intel");
+    intrinsics::unreachable();
+}
+```
+
+---
+# Example Contribution: x86-interrupt ABI
+
+Then I saw this PR:
+
+![msp430 interrupts](msp430-interrupts.png)
+
+---
+# Example Contribution: x86-interrupt ABI
+
+- Diff very small .grey[(+38 -1)] since LLVM already supports a `msp430-interrupt` ABI
+
+
+--
+
+- It also supports a `x86-interrupt` ABI!
+  - Let's try to add it!
+
+---
+# x86-interrupt ABI: Forking
+
+- Fork the Rust repository
+  ![fork](fork.png)
+
+- Then you have your own copy:
+  ![forked](forked.png)
+---
+# x86-interrupt ABI: Implementation
+
+- Implement support for the `x86-interrupt` ABI
+  - mostly copy&paste of the msp430 PR
+
+```rust
+ /// LLVM CallingConv::ID. Should we wrap this?
+ #[derive(Copy, Clone, PartialEq, Debug)]
+ #[repr(C)]
+ pub enum CallConv {
+     CCallConv = 0,
+     FastCallConv = 8,
+     […]
+     Msp430Intr = 69,
+     `X86_Intr = 83`,
+  }
+```
+---
+# x86-interrupt ABI: Feature Gate
+
+- Add a feature gate
+
+```rust
+impl<'a> PostExpansionVisitor<'a> {
+  fn check_abi(&self, abi: Abi, span: Span) {
+    match abi {
+      […],
+      `Abi::X86Interrupt => {`
+        `gate_feature_post!(&self, abi_x86_interrupt, span,`
+          `"x86-interrupt ABI is experimental and subject to change");`
+      `},`
+      // Stable
+      Abi::Cdecl | Abi::Stdcall | Abi::Fastcall | Abi::Aapcs | Abi::Win64 |
+      Abi::Rust | Abi::C | Abi::System => {}
+    }
+  }
+}
+```
+---
+# x86-interrupt ABI: Testing
+
+- Build Rust
+  - `python x.py build`
+  - Wait a few hours .grey[(on the initial build)]
+- Run the test suite
+  - `python x.py test`
+- Try the new compiler
+  - There is a new `rustc` in the build dir
+  - Tell `cargo` to use it through the `RUSTC` environment variable
+  - e.g. `RUSTC="/home/…/rust/…/rustc" cargo build`
+
+---
+# x86-interrupt ABI: Pull Request
+
+- Send a pull request to Rust's master branch
+
+![x86-interrupt ABI PR](x86-interrupt-pr.png)
+
+---
+# x86-interrupt ABI: Continuous Integration
+
+- Each pull request is automatically tested on _Travis CI_
+  ![github ci](github-ci.png)
+    - For several platforms configurations
+      - Not all configurations are tested for PRs
+    - Don't worry if a test fails
+        - Just push a fix to your PR branch
+
+---
+# Travis Builds for Rust (1)
+
+![](travis-1.png)
+
+---
+# Travis Builds for Rust (2)
+![](travis-2.png)
+
+---
+# Travis Builds for Rust (3)
+![](travis-3.png)
+
+---
+# Travis CI
+
+- Travis is free for open-source projects
+  - We also use it for _Writing an OS in Rust_
+
+```yml
+# .travis.yml
+
+language: rust
+rust:
+    - nightly
+
+cache: cargo
+
+addons:
+  apt:
+    packages:
+      - nasm
+
+script:
+  - make
+```
+---
+# x86-interrupt ABI: PR Discussion
+
+![](pr-discussion.png)
+---
+# x86-interrupt ABI: PR Decision
+
+![](pr-decision.png)
+
+---
+# x86-interrupt ABI: Merging
+
+![](pr-merging.png)
+
+---
+# x86-interrupt ABI: Merging
+
+- `bors` bot tests each _merge_
+  - Ensures that master always builds
+- Runs all tests on Travis
+  - Takes several hours
+- Performs merge if all tests are green
+
+![](pr-bors-merge.png)
+
+---
+# Rust Development on GitHub: Summary
+
+- Scales to large number of contributors
+- `bors` ensures that build stays green
+- Each change requires a review
+  - By a member from the corresponding Rust subteam
+- Larger changes require an RFC
+- Contributions are welcome from everyone
+
+---
+class: center, middle
+
+# Multitasking
+
+---
+# Multitasking: Principles
+
+- Multiple threads of execution
+  - Each thread requires its own stack
+- Switch between threads, so that all make progress
+  - A _scheduler_ decides which thread runs next
+--
+
+
+## Preemptive Scheduling
+
+- Set up a hardware timer
+  - Sends an _interrupt_ after specific time
+- CPU invokes interrupt handler .grey[(defined in the IDT)]
+  - Calls _dispatcher_ to perform thread switch
+      - Calls scheduler to select next thread
+
+---
+# Multitasking: Dispatching
+
+- Save all general purpose registers on the stack
+- (Save SSE/floating point state)
+- Save stack pointer value in a thread control block
+  - Required to continue thread
+
+--
+
+
+- Call scheduler to select next thread
+- Load stack pointer from next thread's TCB
+  - Must be done in assembly
+
+--
+
+
+- Restore register state from stack
+- For userspace threads: Switch address space
+- Continue execution
+
+---
+# Multitasking: Problem on nested IRQs
+
+- APIC supports multiple privilege levels for IRQs
+  - interrupts an interrupt handler if a higher priority IRQ arrives
+  - nested interrupt handling
+- We can't change stacks when there are outer interrupt frames on the stack
+  - these interrupts would remain unhandled until the thread is scheduled again
+
+---
+# Multitasking: Solution for nested IRQs
+
+- Separate scheduling interrupt
+- Invoked by software
+- Lower priority than all other interrupts
+  - Handling is deferred until all higher-priority IRQs are handled [.grey[(more information)]](http://www.osdever.net/tutorials/view/advanced-programming-interrupt-controller)
+
+
+--
+
+- Use custom entry point, written in assembly
+  - Save all registers
+  - Call the scheduler with stack pointer value
+- To construct a new thread:
+  - Write return address, dummy register values, … to stack
+  - Treat it like an interrupted thread
+
+---
+# Multitasking: Scheduler Design
+
+- Cheap to compute
+- Ensure fairness .grey[of some kind]
+  - e.g. equalize run-time in recent history
+- Scalable
+
+
+- Priorities?
+  - Avoid priority inversion!
+- Multi-processor support?
+- Real-Time guarantees?
+
+---
+# Multitasking: Simple Scheduler Designs
+
+- Round-Robin
+  - `Vec` of threads
+  - Simplest case: `Vec` of stack pointers
+- Priority queue using `BinaryHeap`?
+- Fixed time-slice lengths
+- Pre-allocated memory for real-time guarantees
+
+---
+class: center
+
+![](osv.png)
+![](osv-design.png)
+
+---
+# Case Study: The OSv Scheduler
+
+- Tick-less
+  - No periodic time interrupts
+  - Use high resolution clock instead
+    - Set a timer for the next thread switch time
+- Fairness: exponentially-decaying moving average
+- Completely lock-free
+
+<br><br>.grey[(see [.grey[the paper]](https://www.usenix.org/system/files/conference/atc14/atc14-paper-kivity.pdf) for more details)]
+---
+# The OSv Scheduler: Lock-Freedom
+
+- No mutexes, no spinlocks
+- Separate run-queue per CPU
+- Load balancer for migration between CPUs
+- `N` lock-free SPSC queues of incoming threads per CPU
+  - `N^2` SPSC queues in total
+  - Inter-processor interrupt for notification of new content
+- Optimization: Bitmap of non-empty queues per CPU
+
+.grey[(`N` = number of CPUs)<br>
+(SPSC = “single producer, single consumer”)]
+
+---
+# Case Study: Real Time For the Masses
+
+TODO
+
+See http://blog.japaric.io/fearless-concurrency/
+
+---
+# Multitasking: Summary
+
+TODO
+
+???
+- real time guarantees?
+- use futures?
+- radical idea: no blocking?
+
     </textarea>
     <script src="remark-latest.min.js">
     </script>

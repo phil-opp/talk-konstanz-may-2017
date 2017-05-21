@@ -851,9 +851,39 @@ class: center
 ---
 # Case Study: Real Time For the Masses
 
-TODO
+- Idea: Each task belongs to an interrupt
+- Scheduling is done by interrupt controller
+  - Invokes interrupt handlers highest-priority first
+  - Preempts low-priority tasks on higher priority IRQs
 
-See http://blog.japaric.io/fearless-concurrency/
+
+- Same-priority tasks can't preempt each other
+- Task have _run to completion_ semantics
+  - Endless loops cause starvation of lower-priority tasks
+
+More info: http://blog.japaric.io/fearless-concurrency/
+
+---
+# RTFM Example
+
+```rust
+tasks!(stm32f30x, {
+    periodic: Task {
+        interrupt: Tim7,
+        priority: P1,
+        enabled: true,
+    },
+});
+
+fn periodic(mut task: Tim7, ref priority: P1, ref threshold: T1) {
+    // Task local data
+    static STATE: Local<bool, Tim7> = Local::new(false);
+
+    let state = STATE.borrow_mut(&mut task);
+    *state = !*state;
+    if *state { LEDS[0].on(); } else { LEDS[0].off(); }
+}
+```
 
 ---
 # Multitasking: Summary

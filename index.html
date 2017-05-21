@@ -888,12 +888,18 @@ fn periodic(mut task: Tim7, ref priority: P1, ref threshold: T1) {
 ---
 # Multitasking: Summary
 
-TODO
+- Dispatcher saves/restores thread state .grey[(on stack)]
+- Scheduler chooses next thread
+  - Tradeoff: good decision <-> fast decision
+- Preemption through hardware timer
+  - PIC and Programmable Interval Timer (PIT)
+  - APIC with integrated timer
 
-???
-- real time guarantees?
-- use futures?
-- radical idea: no blocking?
+Scheduler design ideas:
+
+- OSv: lock-free scheduling
+- RTFM: real-time scheduling with priorities
+  - Interrupt controller is scheduler
 
     </textarea>
     <script src="remark-latest.min.js">

@@ -750,6 +750,50 @@ out 0x40, al            ; set high divisor byte
 - Continue execution
 
 ---
+# Dispatching Example: Timer Interrupt Handler
+
+```rust
+#[naked]
+extern "C" fn timer_handler() {
+    unsafe {
+        save_registers!();
+        asm!("mov rdi, rsp
+              call schedule
+              mov rsp, rax"
+              ::: "rdi, rsp" : "intel");
+        restore_registers!();
+        asm!("iretq" :::: "intel", "volatile");
+        ::core::intrinsics::unreachable();
+    }
+}
+
+fn schedule(sp: usize) -> usize {
+    SCHEDULER.lock().schedule(sp)
+}
+```
+
+---
+# Dispatching Example: Timer Interrupt Handler
+
+```rust
+struct Scheduler {
+    threads: VecDeque<usize>,
+}
+
+impl Scheduler {
+    fn schedule(&mut self, sp: usize) -> usize {
+        self.threads.push_back(sp);
+        self.threads.pop_front().unwrap()
+    }
+
+    fn create_thread(&mut self, sp: usize, ip: usize) {
+        […] // construct interrupt stack frame on stack
+        self.threads.push_back(sp_new);
+    }
+}
+```
+
+---
 # Multitasking: Problem on nested IRQs
 
 - APIC supports multiple privilege levels for IRQs

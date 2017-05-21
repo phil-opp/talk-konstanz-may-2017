@@ -794,33 +794,6 @@ impl Scheduler {
 ```
 
 ---
-# Multitasking: Problem on nested IRQs
-
-- APIC supports multiple privilege levels for IRQs
-  - interrupts an interrupt handler if a higher priority IRQ arrives
-  - nested interrupt handling
-- We can't change stacks when there are outer interrupt frames on the stack
-  - these interrupts would remain unhandled until the thread is scheduled again
-
----
-# Multitasking: Solution for nested IRQs
-
-- Separate scheduling interrupt
-- Invoked by software
-- Lower priority than all other interrupts
-  - Handling is deferred until all higher-priority IRQs are handled [.grey[(more information)]](http://www.osdever.net/tutorials/view/advanced-programming-interrupt-controller)
-
-
---
-
-- Use custom entry point, written in assembly
-  - Save all registers
-  - Call the scheduler with stack pointer value
-- To construct a new thread:
-  - Write return address, dummy register values, … to stack
-  - Treat it like an interrupted thread
-
----
 # Multitasking: Scheduler Design
 
 - Cheap to compute

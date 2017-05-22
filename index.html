@@ -754,17 +754,12 @@ out 0x40, al            ; set high divisor byte
 # Dispatching Example: Timer Interrupt Handler
 
 ```rust
-#[naked]
-extern "C" fn timer_handler() {
+extern "x86-interrupt" fn timer_handler(f: &ExceptionStackFrame) {
     unsafe {
-        save_registers!();
         asm!("mov rdi, rsp
               call schedule
               mov rsp, rax"
-              ::: "rdi, rsp" : "intel");
-        restore_registers!();
-        asm!("iretq" :::: "intel", "volatile");
-        ::core::intrinsics::unreachable();
+              ::: "rax, rbx, rcx, rdx, rbp, rsi, rdi, r8, …, r15" : "intel");
     }
 }
 

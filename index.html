@@ -410,7 +410,7 @@ Then I saw this PR:
 
 --
 
-- It also supports a `x86-interrupt` ABI!
+- LLVM also supports a `x86-interrupt` ABI!
   - Let's try to add it!
 
 ---
@@ -471,7 +471,7 @@ impl<'a> PostExpansionVisitor<'a> {
 - Try the new compiler
   - There is a new `rustc` in the build dir
   - Tell `cargo` to use it through the `RUSTC` environment variable
-  - e.g. `RUSTC="/home/…/rust/…/rustc" cargo build`
+      - e.g. `RUSTC="/home/…/rust/…/rustc" cargo build`
 
 ---
 # x86-interrupt ABI: Pull Request
